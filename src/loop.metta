@@ -38,8 +38,6 @@
                                 (let* (($lastmessage (HUMAN-LAST-MSG: $msg
                                                       MESSAGE-IS-NEW: $msgnew))
                                        ($_ (println! $lastmessage))
-                                       ($_ (write-file HISTORYDEBUG (getHistory)))
-                                       ($_ (write-file MEMORYDEBUG (getMemory)))
                                        ($_ (change-state! &prevmsg $msg))
                                        ($send (py-str ($prompt $lastmessage)))
                                        ($_ (println! (CHARS_SENT: (string_length $send) $send)))
