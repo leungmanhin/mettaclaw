@@ -83,7 +83,7 @@ Again, the sub-expression can have fewer or more than two instances as needed, a
 
 The general procedures of performing this natural language to PLN expressions conversion are:
 1) analyze the given input text together with the given context to make sure the input text will be properly interpreted
-2) identify all the declarative information from the input text
+2) identify all the declarative information from the input text (or skip the rest of the procedures and return empty if no declarative information is identified)
 3) identify all the linguistic atomic semantic units from the declarative information
 4) construct the PLN expressions using these semantic units as the basic building blocks, and the above as guidelines
 
