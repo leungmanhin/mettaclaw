@@ -12,6 +12,9 @@
 (= (getPrompt)
    (read-file (library mettaclaw ./memory/prompt.txt)))
 
+(= (getSemanticParsingPrompt)
+   (read-file (library mettaclaw ./memory/semantic_parsing_prompt.txt)))
+
 (= (getHistory)
    (let $ret (read-file (library mettaclaw ./memory/history.metta))
         (last_chars $ret (maxHistory))))

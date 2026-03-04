@@ -45,6 +45,14 @@
                                                       MESSAGE-IS-NEW: $msgnew))
                                        ($_ (println! $lastmessage))
                                        ($_ (change-state! &prevmsg $msg))
+                                       ($semantics (if $msgnew
+                                           (py-call (semantic_parsing.nl2pln
+                                               (getSemanticParsingPrompt)
+                                               (string-safe (py-str ("HISTORY: " (getHistory) (newline) "CURRENT TIME: " (get_time_as_string))))
+                                               $msg
+                                           ))
+                                           ""))
+                                       ($_ (println! (SEMANTICS: $semantics)))
                                        ($send (py-str ($prompt $lastmessage)))
                                        ($_ (println! (CHARS_SENT: (string_length $send) $send)))
                                        ($resp (useGPT (LLM) (maxOutputToken) (reasoningMode) $send))

@@ -11,3 +11,4 @@
 !(import! &self (library mettaclaw ./src/channels))
 !(import! &self (library mettaclaw ./src/context))
 !(import! &self (library mettaclaw ./src/loop))
+!(import! &self (library mettaclaw ./src/semantic_parsing.py))
