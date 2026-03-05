@@ -12,9 +12,6 @@
 (= (getPrompt)
    (read-file (library mettaclaw ./memory/prompt.txt)))
 
-(= (getSemanticParsingPrompt)
-   (read-file (library mettaclaw ./memory/semantic_parsing_prompt.txt)))
-
 (= (getMemory)
    (let $ret (read-file (library mettaclaw ./memory/STM.metta))
         (last_chars $ret (maxMemory))))
@@ -42,3 +39,10 @@
                     (let $u (collapse (for ($sim $date $atom) (take (maxRecallItems) (reverse $sorted))
                                    ($date $atom)))
                                    (repr $u))))))
+
+(= (remember $str)
+   (let $sem-memory (py-call (semantic_parsing.nl2pln
+                       (read-file (library mettaclaw ./memory/semantic_parsing_prompt.txt))
+                       (string-safe (py-str ("HISTORY: " (getHistory) (newline) "CURRENT TIME: " (get_time_as_string))))
+                       $str))
+        (append-file (library mettaclaw ./memory/SPM.metta) $sem-memory)))

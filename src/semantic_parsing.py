@@ -399,4 +399,4 @@ def nl2pln(system_prompt, context, input_text, mode="parsing", max_back_forth=10
 
     # TODO
     # return (type_defs, stmts, queries, sent_links)
-    return (type_defs, stmts, queries)
+    return "\n".join(type_defs + stmts + queries) + "\n"
