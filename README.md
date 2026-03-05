@@ -13,7 +13,7 @@ In addition, an initial set of OpenClaw-like tools is implemented, including web
 Simplicity of design, ease of prototyping, ease of extension, and transparent implementation in MeTTa were the primary design criteria.
 The agent core comprises approximately 200 lines of code.
 
-**Design Features**
+**Special Features**
 
 - MeTTaClaw uses a token-efficient agentic loop, enabling low-cost long-term operation and embodiment in domains that require real-time learning and decision-making.
 
