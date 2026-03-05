@@ -20,8 +20,8 @@ def _main_chain(query, result_queue, handler, max_depth):
     print(f"Chaining result: {result}\n(Time used: {end_time - start_time} seconds)\n")
     result_queue.put(result)
 
-def chain(query, timeout=10, max_depth=10):
-    result = None
+def chain(query, timeout=10, max_depth=6):
+    result = []
     chaining_return_queue = multiprocessing.Queue()
 
     chaining_process = multiprocessing.Process(
@@ -45,3 +45,9 @@ def chain(query, timeout=10, max_depth=10):
         print("... chaining_process terminated")
 
     return result
+
+def chain_queries(queries):
+    all_results = []
+    for query in queries:
+        all_results += chain(query)
+    return all_results
