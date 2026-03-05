@@ -46,8 +46,17 @@
                                    (repr $u))))))
 
 (= (remember $str)
-   (let $sem-memory (py-call (semantic_parsing.nl2pln
+   (let $sp-rtn (py-call (semantic_parsing.nl2pln_to_file
                        (read-file (library mettaclaw ./memory/semantic_parsing_prompt.txt))
                        (string-safe (py-str ("HISTORY: " (getHistory) (newline) "CURRENT TIME: " (get_time_as_string))))
-                       $str))
-        (append-file (library mettaclaw ./memory/SPM.metta) $sem-memory)))
+                       $str
+                       "parsing"))
+        (append-file (library mettaclaw ./memory/SPM.metta) $sp-rtn)))
+
+(= (query $str)
+   (let $sp-rtn (py-call (semantic_parsing.nl2pln_to_chainer
+                        (read-file (library mettaclaw ./memory/semantic_querying_prompt.txt))
+                        (string-safe (py-str ("HISTORY: " (getHistory) (newline) "CURRENT TIME: " (get_time_as_string))))
+                        $str
+                        "querying"))
+        (py-call (chaining.chain_queries $sp-rtn))))

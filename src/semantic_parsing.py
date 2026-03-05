@@ -50,8 +50,6 @@ class PLNExprs(BaseModel):
     stmts: list[str]
 
 class PLNQueryExprs(BaseModel):
-    type_defs: list[str]
-    stmts: list[str]
     queries: list[str]
 
 def create_nl2pln_parsing_prompt(text, context):
@@ -239,7 +237,7 @@ def connectivity_check(stmts):
     return True if len(connected) == len(filtered_stmt_ele_lst) else False
 
 
-def to_openrouter(prompt, model = "openai/gpt-5.2", effort = "high", history = [], output_format = create_model('StrResp', response=(str, ...))):
+def to_openrouter(prompt, model="openai/gpt-5.2", effort="none", history=[], output_format=create_model('StrResp', response=(str, ...))):
     history.append({"role": "user", "content": prompt})
     key = os.environ.get('OPENROUTER_API_KEY', '')
     schema = output_format.model_json_schema()
@@ -266,14 +264,19 @@ def to_openrouter(prompt, model = "openai/gpt-5.2", effort = "high", history = [
     return json.loads(content)
 
 
-def format_check_correct(openai_outputs, chat_history, output_format, max_back_forth=10, related_exprs={}):
+def format_check_correct(llm_outputs, chat_history, output_format, max_back_forth=10, related_exprs={}):
     while True:
         attempts = int((len(chat_history)-1)/2)
         print(f"[attempts = {attempts}]")
 
-        type_defs = openai_outputs["type_defs"]
-        stmts = openai_outputs["stmts"] if "stmts" in openai_outputs else openai_outputs["rules"]
-        queries = openai_outputs["queries"] if "queries" in openai_outputs else []
+        if "queries" in llm_outputs:
+            type_defs = []
+            stmts = []
+            queries = llm_outputs["queries"]
+        else:
+            type_defs = llm_outputs["type_defs"]
+            stmts = llm_outputs["stmts"] if "stmts" in llm_outputs else llm_outputs["rules"]
+            queries = []
 
         if attempts > max_back_forth:
             print(f"Maximum back-and-forth's ({max_back_forth} times) with the LLM has reached!")
@@ -287,7 +290,7 @@ def format_check_correct(openai_outputs, chat_history, output_format, max_back_f
             e = "" if expr_check_exception == None else f"{expr_check_exception}".strip()
             if not (expr_check_result and type_def_check(type_def)):
                 print(f"... retrying type_def_check for type_def '{type_def}'\n")
-                openai_outputs = to_openrouter(create_nl2pln_correction_prompt(f"One of your type_defs ('{type_def}') doesn't pass the format check" + (f" with an exception '{e}', " if e else ", ") + "please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
+                llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"One of your type_defs ('{type_def}') doesn't pass the format check" + (f" with an exception '{e}', " if e else ", ") + "please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
                 type_def_check_pass = False
                 break
         if not type_def_check_pass:
@@ -299,7 +302,7 @@ def format_check_correct(openai_outputs, chat_history, output_format, max_back_f
             e = "" if stmt_check_exception == None else f"{stmt_check_exception}".strip()
             if not stmt_check_result:
                 print(f"... retrying stmt_format_check for stmt '{stmt}'\n")
-                openai_outputs = to_openrouter(create_nl2pln_correction_prompt(f"One of your stmts ('{stmt}') doesn't pass the format check" + (f" with an exception '{e}', " if e else ", ") + "please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
+                llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"One of your stmts ('{stmt}') doesn't pass the format check" + (f" with an exception '{e}', " if e else ", ") + "please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
                 stmts_check_pass = False
                 break
         if not stmts_check_pass:
@@ -311,12 +314,12 @@ def format_check_correct(openai_outputs, chat_history, output_format, max_back_f
             e = "" if query_check_exception == None else f"{query_check_exception}".strip()
             if not query_check_result:
                 print(f"... retrying query_format_check_1 for query '{query}'\n")
-                openai_outputs = to_openrouter(create_nl2pln_correction_prompt(f"One of your queries ('{query}') doesn't pass the format check" + (f" with an exception '{e}', " if e else ", ") + "please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
+                llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"One of your queries ('{query}') doesn't pass the format check" + (f" with an exception '{e}', " if e else ", ") + "please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
                 query_check_pass = False
                 break
             if not query_format_check_2(query):
                 print(f"... retrying query_format_check_2 for query '{query}'\n")
-                openai_outputs = to_openrouter(create_nl2pln_correction_prompt(f"Make sure the proof name and the truth value of your query '{query}' are variables in order to make it a valid query. Please make the improvement and regenerate all the output fields."), output_format=output_format, history=chat_history)
+                llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"Make sure the proof name and the truth value of your query '{query}' are variables in order to make it a valid query. Please make the improvement and regenerate all the output fields."), output_format=output_format, history=chat_history)
                 query_check_pass = False
                 break
         if not query_check_pass:
@@ -329,7 +332,7 @@ def format_check_correct(openai_outputs, chat_history, output_format, max_back_f
         #     e = "" if check_exception == None else f"{check_exception}".strip()
         #     if not check_result:
         #         print(f"... retrying metta_type_check for: {expr} | {type_defs}\n")
-        #         openai_outputs = to_openrouter(create_nl2pln_correction_prompt(f"One of your PLN expressions ('{expr}') doesn't pass type checking in the system based on your type_defs ({type_defs})" + (f" with an exception '{e}', " if e else ", ") + "please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
+        #         llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"One of your PLN expressions ('{expr}') doesn't pass type checking in the system based on your type_defs ({type_defs})" + (f" with an exception '{e}', " if e else ", ") + "please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
         #         metta_type_check_pass = False
         #         break
         # if not metta_type_check_pass:
@@ -341,7 +344,7 @@ def format_check_correct(openai_outputs, chat_history, output_format, max_back_f
         )
         if not rtn[0]:
             print(f"... retrying for unused_preds: {rtn[1]}\n")
-            openai_outputs = to_openrouter(create_nl2pln_correction_prompt(f"You have defined one or more predicates but left unused:\n{rtn[1]}\n\nPlease make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
+            llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"You have defined one or more predicates but left unused:\n{rtn[1]}\n\nPlease make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
             continue
 
         rtn = undefined_preds_check(
@@ -350,12 +353,12 @@ def format_check_correct(openai_outputs, chat_history, output_format, max_back_f
         )
         if not rtn[0]:
             print(f"... retrying for undefined_preds: {rtn[1]}\n")
-            openai_outputs = to_openrouter(create_nl2pln_correction_prompt(f"You have used one or more predicates that are not defined:\n{rtn[1]}\n\nPlease make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
+            llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"You have used one or more predicates that are not defined:\n{rtn[1]}\n\nPlease make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
             continue
 
         if not connectivity_check(stmts + (related_exprs["stmts"] if related_exprs else [])):
             print(f"... retrying for connectivity_check for: {stmts}\n")
-            openai_outputs = to_openrouter(create_nl2pln_correction_prompt(f"Some of your 'stmts' are disconnected from the rest. Please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
+            llm_outputs = to_openrouter(create_nl2pln_correction_prompt(f"Some of your 'stmts' are disconnected from the rest. Please make the correction and regenerate all the output fields."), output_format=output_format, history=chat_history)
             continue
 
         print(f"PASSED FORMAT CHECK!!\n")
@@ -364,7 +367,7 @@ def format_check_correct(openai_outputs, chat_history, output_format, max_back_f
     return (type_defs, stmts, queries)
 
 
-def nl2pln(system_prompt, context, input_text, mode="parsing", max_back_forth=10):
+def nl2pln(system_prompt, context, input_text, mode, max_back_forth=10):
     output_format = PLNQueryExprs if mode == "querying" else PLNExprs
 
     if input_text == "(@ none)":
@@ -393,10 +396,18 @@ def nl2pln(system_prompt, context, input_text, mode="parsing", max_back_forth=10
 
     print(f"### {input_text} ###\n```", *(type_defs + stmts + queries), "```\n", sep="\n")
 
-    for expr in (type_defs + stmts + queries):
+    for expr in (type_defs + stmts):
         print(f"... adding to space: {expr}")
         petta_chainer_handler.add_atom(expr)
 
     # TODO
     # return (type_defs, stmts, queries, sent_links)
-    return "\n".join(type_defs + stmts + queries) + "\n"
+    return (type_defs, stmts, queries)
+
+def nl2pln_to_file(system_prompt, context, input_text, mode="parsing"):
+    type_defs, stmts, queries = nl2pln(system_prompt, context, input_text, mode)
+    return f";; {input_text}\n" + "\n".join(type_defs + stmts + queries) + "\n"
+
+def nl2pln_to_chainer(system_prompt, context, input_text, mode="querying"):
+    type_defs, stmts, queries = nl2pln(system_prompt, context, input_text, mode)
+    return queries
