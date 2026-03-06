@@ -42,7 +42,7 @@
                                        ($_ (change-state! &prevmsg $msg))
                                        ($send (py-str ($prompt $lastmessage)))
                                        ($_ (println! (CHARS_SENT: (string_length $send) $send)))
-                                       ($resp (useGPT (LLM) (maxOutputToken) (reasoningMode) $send))
+                                       ($resp (useOpenRouter (LLM) $send))
                                        ($response (if (== "(" (first_char $resp)) $resp (progn (println! $resp) (repr (REMEMBER:OUTPUT_NOTHING_ELSE_THAN: ((skill arg) ...))))))
                                        ($sexpr (catch (sread $response)))
                                        ($_ (println! (RESPONSE: $sexpr)))
