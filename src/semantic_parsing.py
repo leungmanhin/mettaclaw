@@ -81,30 +81,10 @@ def create_nl2pln_correction_prompt(correction):
         </correction_comments>
         """).strip()
 
-expr_format_check_fn = """
-(= (expr-format-check $expr)
-   (unify $expr (: $x $y) True False))
-""".strip()
-
-stmt_format_check_fn = """
-(= (stmt-format-check $expr)
-   (unify $expr (: $prf $main (STV $s $c)) True False))
-""".strip()
-
-query_format_check_fn = """
-(= (query-format-check $expr)
-   (unify $expr (: $x $y $tv) True False))
-""".strip()
-
-metta = MeTTa()
-metta.run(expr_format_check_fn)
-metta.run(stmt_format_check_fn)
-metta.run(query_format_check_fn)
-
 def expr_format_check(expr):
     try:
-        rtn = metta.run(f"!(expr-format-check {expr})")[0][0]
-        if isinstance(rtn, GroundedAtom) and rtn.get_object().value == True:
+        parsed = loads(re.sub(r'\n\s*', ' ', expr))
+        if isinstance(parsed, list) and len(parsed) == 3 and parsed[0] == Symbol(":"):
             return (True, None)
     except Exception as e:
         print(f"Got an exception in expr_format_check for '{expr}': {e}")
@@ -120,8 +100,11 @@ def type_def_check(expr):
 
 def stmt_format_check(expr):
     try:
-        rtn = metta.run(f"!(stmt-format-check {expr})")[0][0]
-        if isinstance(rtn, GroundedAtom) and rtn.get_object().value == True:
+        parsed = loads(re.sub(r'\n\s*', ' ', expr))
+        if (isinstance(parsed, list) and len(parsed) == 4 and
+                parsed[0] == Symbol(":") and
+                isinstance(parsed[3], list) and len(parsed[3]) == 3 and
+                parsed[3][0] == Symbol("STV")):
             return (True, None)
     except Exception as e:
         print(f"Got an exception in stmt_format_check for '{expr}': {e}")
@@ -130,8 +113,8 @@ def stmt_format_check(expr):
 
 def query_format_check_1(expr):
     try:
-        rtn = metta.run(f"!(query-format-check {expr})")[0][0]
-        if isinstance(rtn, GroundedAtom) and rtn.get_object().value == True:
+        parsed = loads(re.sub(r'\n\s*', ' ', expr))
+        if isinstance(parsed, list) and len(parsed) == 4 and parsed[0] == Symbol(":"):
             return (True, None)
     except Exception as e:
         print(f"Got an exception in query_format_check_1 for '{expr}': {e}")
